@@ -1,0 +1,198 @@
+#!/usr/bin/env bash
+# le-lab: set up, grade and reset LINUXexpert practice labs on a throwaway VM.
+# Run "le-lab help" for usage.
+
+set -uo pipefail
+
+ROOT=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
+. "$ROOT/lib/lab.sh"
+
+MARKER=/etc/le-lab/throwaway-vm
+CURRENT=$LE_STATE/current
+
+usage() {
+	cat <<EOF
+Usage: sudo ./le-lab COMMAND [LAB]
+
+  list [GUIDE]   show the labs (all, or one guide's, such as lfcs)
+  start LAB      set up a lab, such as lfcs/5-1-user-group-accounts
+  tasks          show the tasks of the lab you're working on
+  check          grade your work so far (as often as you like)
+  reset          undo the lab's setup and your work on its files
+  status         show which lab is set up
+
+Run it only on a throwaway VM: labs change system settings on purpose.
+Take a snapshot of the VM first so you can roll back.
+EOF
+}
+
+need_root() { [ "$(id -u)" -eq 0 ] || die "run it as root: sudo $0 $*"; }
+
+lab_dir() {
+	local id=${1%/}
+	id=${id#labs/}
+	[ -f "$ROOT/labs/$id/lab.conf" ] || die "no lab called $id (try: le-lab list)"
+	printf '%s\n' "$ROOT/labs/$id"
+}
+
+lab_id() { printf '%s\n' "${1#"$ROOT"/labs/}"; }
+
+# Labs change the system on purpose, so refuse anything that isn't a VM,
+# and ask once before the first lab on this one.
+confirm_vm() {
+	[ -f "$MARKER" ] && return 0
+	local virt
+	virt=$(systemd-detect-virt 2>/dev/null) || virt=none
+	if systemd-detect-virt --container >/dev/null 2>&1; then
+		die "this is a container ($virt); labs need a full virtual machine"
+	fi
+	if [ "$virt" = none ]; then
+		die "this doesn't look like a virtual machine; labs only run on a throwaway VM"
+	fi
+	cat <<EOF
+${C_B}Practice labs change this system on purpose.${C_0} They add users, disks,
+services and firewall rules, and some tasks break the boot for you to fix.
+Use a throwaway VM ($virt detected) and take a snapshot first.
+
+EOF
+	if [ "${LE_LAB_YES:-}" != 1 ]; then
+		local reply
+		read -r -p 'Type "throwaway" to continue: ' reply
+		[ "$reply" = throwaway ] || die "stopped; nothing was changed"
+	fi
+	mkdir -p "${MARKER%/*}"
+	printf 'Confirmed %s\n' "$(date -Is)" >"$MARKER"
+}
+
+# Attaches the spare disks again at boot; installed once, harmless when
+# there are none.
+install_disk_unit() {
+	local unit=/etc/systemd/system/le-lab-disks.service old=''
+	[ -f "$unit" ] && old=$(cat "$unit")
+	cat >"$unit" <<EOF
+[Unit]
+Description=Attach LINUXexpert practice lab disks
+DefaultDependencies=no
+After=systemd-udevd.service
+Before=local-fs-pre.target lvm2-activation-early.service
+Wants=local-fs-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c '. $LE_LIB && disks_attach'
+
+[Install]
+WantedBy=local-fs-pre.target
+EOF
+	[ "$old" = "$(cat "$unit")" ] && return 0
+	systemctl daemon-reload
+	systemctl enable --quiet le-lab-disks.service
+}
+
+conf_get() { (. "$1/lab.conf" && eval "printf '%s' \"\${$2:-}\""); }
+
+cmd_list() {
+	local filter=${1:-} conf dir id title
+	for conf in "$ROOT"/labs/*/*/lab.conf; do
+		[ -e "$conf" ] || continue
+		dir=${conf%/lab.conf}; id=$(lab_id "$dir")
+		[ -z "$filter" ] || [ "${id%%/*}" = "$filter" ] || continue
+		title=$(conf_get "$dir" TITLE)
+		printf '  %-42s %s\n' "$id" "$title"
+	done
+}
+
+cmd_start() {
+	[ $# -eq 1 ] || die "usage: le-lab start LAB"
+	need_root start
+	local dir id systems
+	dir=$(lab_dir "$1"); id=$(lab_id "$dir")
+	systems=$(conf_get "$dir" SYSTEMS)
+	case " $systems " in
+	*" $OS_FAMILY "*) ;;
+	*) die "$id runs on: $systems (this is $OS_NAME)" ;;
+	esac
+	if [ -f "$CURRENT" ]; then
+		local cur; cur=$(cat "$CURRENT")
+		[ "$cur" = "$id" ] && die "$id is already set up; use le-lab reset to start over"
+		die "$cur is still set up; run le-lab reset first"
+	fi
+	confirm_vm
+	mkdir -p "$LE_STATE"
+	install_disk_unit
+	export LAB_DIR=$dir LAB_STATE=$LE_STATE/labs/${id//\//_}
+	rm -rf "$LAB_STATE"; mkdir -p "$LAB_STATE" /root/lab-answers
+	say "${C_B}Setting up $id: $(conf_get "$dir" TITLE)${C_0} on $OS_NAME"
+	if ! bash -c '. "$1/lib/lab.sh"; set -e; . "$2/setup.sh"' _ "$ROOT" "$dir"; then
+		warn "Setup failed. Run le-lab reset, then try again."
+		printf '%s\n' "$id" >"$CURRENT"
+		exit 1
+	fi
+	printf '%s\n' "$id" >"$CURRENT"
+	say ''
+	cmd_tasks
+	say ''
+	say "When you're ready: ${C_B}sudo $0 check${C_0}"
+}
+
+current_dir() {
+	[ -f "$CURRENT" ] || die "no lab is set up (try: le-lab list, then le-lab start LAB)"
+	lab_dir "$(cat "$CURRENT")"
+}
+
+cmd_tasks() {
+	local dir; dir=$(current_dir)
+	# Print the README's "Before you start" and "Tasks" sections as plain
+	# text.
+	awk '/^## /{p = ($0 ~ /^## (Before you start|Tasks)/); if (p) print toupper(substr($0, 4)); next} p' "$dir/README.md"
+	local url; url=$(conf_get "$dir" CHAPTER)
+	[ -n "$url" ] && say "Study guide chapter: https://linuxexpert.net$url"
+	true
+}
+
+cmd_check() {
+	need_root check
+	local dir id
+	dir=$(current_dir); id=$(lab_id "$dir")
+	export LAB_DIR=$dir LAB_STATE=$LE_STATE/labs/${id//\//_}
+	say "${C_B}$id: $(conf_get "$dir" TITLE)${C_0} on $OS_NAME"
+	say ''
+	bash -c '. "$1/lib/lab.sh"; . "$2/check.sh"; grade_report' _ "$ROOT" "$dir"
+}
+
+cmd_reset() {
+	need_root reset
+	local dir id
+	dir=$(current_dir); id=$(lab_id "$dir")
+	export LAB_DIR=$dir LAB_STATE=$LE_STATE/labs/${id//\//_}
+	say "Resetting $id..."
+	if [ -f "$dir/reset.sh" ]; then
+		bash -c '. "$1/lib/lab.sh"; . "$2/reset.sh"' _ "$ROOT" "$dir" || warn "Some of the reset failed; see above."
+	fi
+	bash -c '. "$1/lib/lab.sh"; users_remove; disks_remove; peer_down' _ "$ROOT"
+	rm -rf "$LAB_STATE" "$CURRENT" /root/lab-answers
+	say "Done. Anything you changed outside the lab's own files is still there;"
+	say "roll back to your snapshot for a completely clean VM."
+}
+
+cmd_status() {
+	if [ -f "$CURRENT" ]; then
+		local dir; dir=$(lab_dir "$(cat "$CURRENT")")
+		say "Set up: $(cat "$CURRENT") ($(conf_get "$dir" TITLE))"
+		[ -f "$LE_STATE/last-score" ] && say "Last check: $(cut -d' ' -f2 "$LE_STATE/last-score") tasks"
+	else
+		say "No lab is set up."
+	fi
+}
+
+case ${1:-help} in
+list) shift; cmd_list "$@" ;;
+start) shift; cmd_start "$@" ;;
+tasks) cmd_tasks ;;
+check) cmd_check ;;
+reset) cmd_reset ;;
+status) cmd_status ;;
+help | -h | --help) usage ;;
+*) usage >&2; exit 2 ;;
+esac
