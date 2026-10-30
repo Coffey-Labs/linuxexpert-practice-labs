@@ -29,4 +29,7 @@ It also adds a line to `/etc/fstab` for a UUID that doesn't exist, at
 - `mkfs.ext4 -L backups`, or `e2label`; `LABEL=backups /backups ext4
   defaults 0 2`.
 - `findmnt --verify` marks the bad line with `[E]`; run
-  `systemctl daemon-reload` after editing `/etc/fstab`.
+  `systemctl daemon-reload` after editing `/etc/fstab`. Run `findmnt
+  --verify` as root: as a normal user it can't read the devices and warns
+  `cannot detect on-disk filesystem type (Permission denied)` for every
+  line.

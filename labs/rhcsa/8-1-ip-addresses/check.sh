@@ -25,7 +25,9 @@ task1_needs
 task 2 "A second address, 192.168.50.11/24, on the same profile"
 need "a profile for eth1 had both 192.168.50.10/24 and 192.168.50.11/24" 'tr " " "\n" <"$LOG" | grep "192\.168\.50\.10/24" | grep -q "192\.168\.50\.11/24"'
 
-task 3 "The profile deleted and made again with nmtui"
+task 3 "The profile deleted and tasks 1 and 2 done again with nmtui"
 need "a second, fresh profile for eth1 was made" '[ "$(seen_uuids | wc -l)" -ge 2 ]'
 need "the first profile is gone" '! nmcli -g UUID connection show | grep -qx "$(seen_uuids | head -n1)"'
 task1_needs
+need "the fresh profile has 192.168.50.11/24 too" 'prof ipv4.addresses | grep -q "192\.168\.50\.11/24"'
+need "eth1 has 192.168.50.11/24 too" 'live 192.168.50.11/24'

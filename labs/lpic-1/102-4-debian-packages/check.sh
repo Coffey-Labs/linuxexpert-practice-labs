@@ -4,12 +4,13 @@ dpkg_did() {
 	cat /var/log/dpkg.log 2>/dev/null | awk -v s="$since" -v a="$1" -v p="$2" \
 		'($1 " " $2) >= s && $3 == a && ($4 == p || index($4, p ":") == 1) {ok = 1} END {exit !ok}'
 }
-gone() { ! dpkg-query -W -f '${Status}' "$1" 2>/dev/null | grep -Eq 'installed|config-files'; }
+gone() { ! dpkg-query -W -f '${Status}' "$1" 2>/dev/null | grep -Eq ' (installed|config-files)$'; }
 
-task 1 "cowsay installed, then removed (and purged)"
-need "dpkg's log shows cowsay installed" 'dpkg_did install cowsay'
-need "dpkg's log shows cowsay removed" 'dpkg_did remove cowsay'
-need "cowsay is gone, configuration files too (dpkg -l)" 'gone cowsay'
+task 1 "mc installed, removed, then purged"
+need "dpkg's log shows mc installed" 'dpkg_did install mc'
+need "dpkg's log shows mc removed" 'dpkg_did remove mc'
+need "dpkg's log shows mc purged" 'dpkg_did purge mc'
+need "mc is gone, configuration files too (dpkg -l)" 'gone mc'
 
 task 2 "Owner of /usr/bin/ls and provider of ab found"
 need "line 1 of /root/lab-answers/2 is the package that owns /usr/bin/ls" '[ "$(sed -n 1p /root/lab-answers/2 | tr -d "[:space:]" | cut -d: -f1)" = "$(dpkg -S /usr/bin/ls | cut -d: -f1)" ]'

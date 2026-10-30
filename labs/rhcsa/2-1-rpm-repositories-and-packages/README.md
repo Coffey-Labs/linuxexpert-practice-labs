@@ -26,7 +26,7 @@ with `sudo ip netns exec lepeer bash`.
    directory, and start `python3 -m http.server` there, bound to
    `10.99.0.2`. On this VM, configure that repository as `lab` in
    `/etc/yum.repos.d/lab.repo` with signature checking on, and install one
-   of its packages from it.
+   of its packages from it with `dnf install --repo lab`.
 3. Find and install the package that provides the `semanage` command.
 4. Remove a package you installed, then undo the removal from dnf's
    history.
@@ -41,5 +41,7 @@ with `sudo ip netns exec lepeer bash`.
   The repo file needs `baseurl=http://10.99.0.2:8000/`, `gpgcheck=1` and
   a `gpgkey=` from `/etc/pki/rpm-gpg/`. `dnf repoinfo lab`;
   `dnf install --repo lab NAME` takes it from that repository only.
-- `dnf provides semanage` (or `'*/semanage'`).
+- `dnf provides semanage` (or `'*/semanage'`). The first `dnf provides`
+  downloads the file lists of every repository, which can take several
+  minutes. It isn't hung.
 - `dnf history list`, `dnf history info`, `dnf history undo`.

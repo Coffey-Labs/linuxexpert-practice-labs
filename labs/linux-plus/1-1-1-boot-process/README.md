@@ -20,7 +20,7 @@ were.
    run `systemctl list-units --state=running`, then `systemctl reboot`. Not
    graded: check yourself that only a handful of units were running. Root
    needs a password for rescue mode (`passwd root`); lock it again
-   afterwards with `passwd -l root`.
+   afterward with `passwd -l root`.
 3. Make a lasting change to the kernel command line, then reboot. RHEL
    family: remove `quiet` from every installed kernel with grubby. Ubuntu:
    add `loglevel=7` to `GRUB_CMDLINE_LINUX_DEFAULT` and run `update-grub`.

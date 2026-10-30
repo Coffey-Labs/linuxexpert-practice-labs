@@ -21,4 +21,7 @@ zone and chrony's configuration, and puts them back when you reset it.
 - `/etc/chrony.conf`: comment out the `pool` line, add a `server` line
   with `iburst`; `systemctl restart chronyd`; `chronyc sources`,
   `chronyc tracking`.
+- If your DHCP server hands out NTP servers, they show up in
+  `chronyc sources` too: comment out the `sourcedir /run/chrony-dhcp`
+  line as well.
 - `timedatectl list-timezones`, `timedatectl set-timezone`, `timedatectl`.

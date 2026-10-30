@@ -3,7 +3,7 @@ grep -ls 'lab\.test' /etc/nginx/conf.d/*.conf 2>/dev/null | xargs -r rm -f
 grep -ls 'shop\.test' /etc/httpd/conf.d/*.conf 2>/dev/null | xargs -r rm -f
 command -v semanage >/dev/null && semanage fcontext -d '/srv/www(/.*)?' 2>/dev/null
 rm -rf /srv/www
-for p in nginx httpd postfix s-nail mailutils; do
+for p in nginx httpd postfix s-nail mailutils policycoreutils-python-utils; do
 	[ -n "$(state_get had-$p)" ] && continue
 	pkg_installed $p || continue
 	systemctl disable --now --quiet $p 2>/dev/null
