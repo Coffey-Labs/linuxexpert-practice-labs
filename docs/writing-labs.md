@@ -84,6 +84,14 @@ N` or `grep`.
 Tasks that say "after a reboot" are graded on what makes them persistent
 (the config file, the enabled unit) and on the live state.
 
+Give servers time to start: a check that grades a port the student opened
+should poll for a few seconds (up to about 15) before failing. `python3 -m
+http.server` in particular looks up its bind address in DNS before it
+listens, which can take over 10 seconds unless the address is in
+`/etc/hosts`; for lab-made web servers, use a small script on
+`http.server.ThreadingHTTPServer` with `server_bind` kept to the plain
+socket bind instead.
+
 Mark a task `self` only when it can't be checked from the running system,
 such as a boot-loader recovery. Say in its README text how to check it.
 
