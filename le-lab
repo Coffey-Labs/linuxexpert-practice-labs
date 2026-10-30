@@ -124,11 +124,16 @@ cmd_start() {
 	export LAB_DIR=$dir LAB_STATE=$LE_STATE/labs/${id//\//_}
 	rm -rf "$LAB_STATE"; mkdir -p "$LAB_STATE" /root/lab-answers
 	say "${C_B}Setting up $id: $(conf_get "$dir" TITLE)${C_0} on $OS_NAME"
-	if ! bash -c '. "$1/lib/lab.sh"; set -e; . "$2/setup.sh"' _ "$ROOT" "$dir"; then
+	bash -c '. "$1/lib/lab.sh"; set -e; . "$2/setup.sh"' _ "$ROOT" "$dir"
+	case $? in
+	0) ;;
+	3) rm -rf "$LAB_STATE"; exit 1 ;;
+	*)
 		warn "Setup failed. Run le-lab reset, then try again."
 		printf '%s\n' "$id" >"$CURRENT"
 		exit 1
-	fi
+		;;
+	esac
 	printf '%s\n' "$id" >"$CURRENT"
 	say ''
 	cmd_tasks

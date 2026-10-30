@@ -20,6 +20,11 @@ say() { printf '%s\n' "$*"; }
 warn() { printf '%s\n' "$*" >&2; }
 die() { printf 'le-lab: %s\n' "$*" >&2; exit 1; }
 
+# refuse MESSAGE: for setup.sh checks before it changes anything; le-lab
+# then doesn't mark the lab as started, so the student can fix it and start
+# again.
+refuse() { printf 'le-lab: %s\n' "$*" >&2; exit 3; }
+
 # ---- which system -----------------------------------------------------------
 
 # OS_FAMILY is rhel or debian; OS_NAME is for messages.
@@ -193,6 +198,7 @@ peer_down() {
 	ip netns pids "$LE_PEER_NS" 2>/dev/null | xargs -r kill 2>/dev/null
 	ip link del le-host 2>/dev/null
 	ip netns del "$LE_PEER_NS" 2>/dev/null
+	rm -rf "/etc/netns/$LE_PEER_NS"
 	hosts_remove
 	true
 }
@@ -213,11 +219,13 @@ hosts_remove() { sed -i '/^# le-lab begin/,/^# le-lab end/d' /etc/hosts; }
 
 # ---- users ------------------------------------------------------------------
 
-# user_add NAME [useradd options]: create a lab user if missing; password
-# "Lab-Pass-1" so students can log in as them.
+# user_add NAME [useradd options]: create a lab user if missing, with bash
+# as the shell unless -s is given (Debian's useradd default is sh) and
+# password "Lab-Pass-1" so students can log in as them.
 user_add() {
 	local u=$1; shift
 	id "$u" >/dev/null 2>&1 && return 0
+	case " $* " in *" -s "* | *" --shell "*) ;; *) set -- -s /bin/bash "$@" ;; esac
 	useradd -m "$@" "$u"
 	echo "$u:Lab-Pass-1" | chpasswd
 	printf '%s\n' "$u" >>"$LAB_STATE/users"
@@ -233,7 +241,9 @@ users_remove() {
 	true
 }
 
-# as_user NAME CMD...: run CMD as NAME with a login environment.
+# as_user NAME CMD...: run CMD as NAME with a login environment. runuser
+# applies pam_limits but not pam_env (/etc/environment); for checks that
+# need both, use sudo -niu NAME.
 as_user() { local u=$1; shift; runuser -l "$u" -c "$*"; }
 
 # ---- grading (check.sh) -----------------------------------------------------

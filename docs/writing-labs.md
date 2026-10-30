@@ -59,7 +59,9 @@ boot.
 **setup.sh** makes the starting point. Every graded task must fail right
 after setup: if a fresh system already passes a task, set up the opposite.
 Install what the scenario needs, but never what a task asks the student to
-install.
+install. If the VM doesn't meet a precondition, stop with `refuse MESSAGE`
+before changing anything: the lab isn't marked as started, so the student
+can fix it and run `start` again.
 
 **check.sh** lists the tasks and what must be true for each:
 
