@@ -33,6 +33,11 @@ cd linuxexpert-practice-labs
 sudo ./le-lab start lfcs/5-1-user-group-accounts
 ```
 
+Studying for one exam? Each guide chapter with a lab also offers that
+guide's labs as one download, such as `lfcs.tar.gz`. Unpack it and run
+`le-lab` the same way from its `linuxexpert-labs-lfcs` folder. Cloning gets
+every guide's labs and lets you update them with `git pull`.
+
 `start` sets the lab up and prints the tasks. Work on them in any order,
 then:
 
