@@ -25,7 +25,7 @@ After=le-lab-disks.service
 
 [Service]
 CPUQuota=10%
-ExecStart=/bin/sh -c 'while :; do /usr/local/sbin/reindexd if=/dev/loop42 of=/dev/null bs=64k iflag=direct status=none; done'
+ExecStart=/bin/sh -c 'while :; do /usr/local/sbin/reindexd if=/dev/loop42 of=/dev/null bs=4k iflag=direct status=none; done'
 
 [Install]
 WantedBy=multi-user.target

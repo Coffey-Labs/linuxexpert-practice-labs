@@ -7,7 +7,7 @@ sar_rows() {
 
 task 1 "Busiest device and process in /root/lab-answers/1"
 need "line 1 names the busiest device" '[ "$(line 1 1 | sed "s#^/dev/##")" = loop42 ]'
-need "line 2 names the process" '[ "$(line 1 2 | sed "s#.*/##")" = reindexd ]'
+need "line 2 names the process" '[ "$(sed -n 2p /root/lab-answers/1 | awk "{print \$1}" | sed "s#.*/##")" = reindexd ]'
 
 task 2 "fio figures in /root/lab-answers/2, test file removed"
 need "fio is installed" 'command -v fio'
