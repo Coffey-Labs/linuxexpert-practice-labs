@@ -27,8 +27,8 @@ Take a snapshot of the VM before you start a lab, so you can always go back.
 ## Getting started
 
 ```sh
-git clone https://git.coffeylabs.org/linuxexpert/practice-labs.git
-cd practice-labs
+git clone https://git.coffeylabs.org/coffey-labs/linuxexpert-practice-labs.git
+cd linuxexpert-practice-labs
 ./le-lab list lfcs
 sudo ./le-lab start lfcs/5-1-user-group-accounts
 ```
