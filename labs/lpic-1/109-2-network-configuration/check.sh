@@ -1,0 +1,24 @@
+if is_rhel; then
+	IF=$(ip -4 route show default | awk '{for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); exit }}')
+	MAINFILE=$(nmcli -t -f DEVICE,FILENAME connection show --active 2>/dev/null | awk -F: -v d="$IF" '$1 == d {print $2; exit}')
+	prof() { nmcli -g "$1" connection show lab-net 2>/dev/null | tr -d '\\'; }
+fi
+
+task 1 "The main connection's file in /root/lab-answers/1" rhel
+need "the answer is the file of $IF's active connection" '[ -n "$MAINFILE" ] && [ "$(head -n1 /root/lab-answers/1)" = "$MAINFILE" ]'
+
+task 2 "lab-net has the static address 10.98.0.10/24, persistently" rhel
+need "lab-net's IPv4 method is manual" '[ "$(prof ipv4.method)" = manual ]'
+need "lab-net has 10.98.0.10/24" 'prof ipv4.addresses | tr "," "\n" | tr -d " " | grep -qx 10.98.0.10/24'
+need "le-lan has 10.98.0.10/24, not from DHCP" 'ip -o -4 addr show dev le-lan | grep -F " 10.98.0.10/24 " | grep -vq dynamic'
+need "the route to 10.98.0.0/24 goes out le-lan" 'ip route get 10.98.0.1 | grep -q "dev le-lan"'
+need "10.98.0.1 answers ping" 'ping -c1 -W2 10.98.0.1'
+
+task 3 "Host name lab2.example.net"
+need "hostname prints lab2.example.net" '[ "$(hostname)" = lab2.example.net ]'
+need "/etc/hostname has lab2.example.net" 'grep -qx lab2.example.net /etc/hostname'
+
+task 4 "files.lab.example is 10.99.0.2, from /etc/hosts"
+need "/etc/hosts has files.lab.example for 10.99.0.2" 'grep -Eq "^10\.99\.0\.2[[:space:]]+(.*[[:space:]])?files\.lab\.example([[:space:]]|$)" /etc/hosts'
+need "getent hosts files.lab.example gives 10.99.0.2" 'getent hosts files.lab.example | grep -q "^10\.99\.0\.2 "'
+need "ping files.lab.example works" 'ping -c1 -W2 files.lab.example'
