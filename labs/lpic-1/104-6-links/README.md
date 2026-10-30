@@ -15,8 +15,9 @@ that directory, and write answers to the files in `/root/lab-answers/`.
    symlink `soft.txt` to it, and look at all three with `ls -li`. Delete
    the original, then `cat` both links.
 2. Try to hard-link a file onto another filesystem (`df` shows which
-   directories are on separate ones), and to hard-link a directory. Write
-   both error messages to `/root/lab-answers/2`.
+   directories are on separate ones; `/dev/shm` is a tmpfs everywhere,
+   while `/tmp` is only on some systems), and to hard-link a directory.
+   Write both error messages to `/root/lab-answers/2`.
 3. Make a directory `parent`, check its link count, add two
    subdirectories, and check again. Write the first count on line 1 of
    `/root/lab-answers/3` and the second on line 2.
@@ -32,8 +33,7 @@ that directory, and write answers to the files in `/root/lab-answers/`.
 
 - `ln`, `ln -s`, `ls -li`; a symlink stores a name, a hard link is another
   name for the same inode.
-- `/tmp` is on the root filesystem on many systems; `/dev/shm` and `/run`
-  are tmpfs. `ln FILE /dev/shm/`; `ln DIR NEWNAME`.
+- `ln FILE /dev/shm/`; `ln DIR NEWNAME`.
 - `ls -ld parent` (the second column), `stat -c %h parent`.
 - Without `-n`, `ln -sf 1.1 current` follows `current` into `1.0` and
   makes the link there.

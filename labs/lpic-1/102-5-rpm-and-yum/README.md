@@ -30,5 +30,6 @@ in `/root/lab-answers/`.
   checksum, `S` the size, `T` the time), `c` marks a configuration file.
 - `dnf download --destdir`, `rpm -qpi`, `rpm -qpl`; `rpm2cpio FILE.rpm |
   cpio -idv ./usr/bin/tree`, run inside `/root/rpms`.
-- `dnf provides dig` downloads the file lists first, which can take a
-  minute. `dnf history`, `dnf history info last`.
+- On RHEL 10 and its relatives, the first `dnf provides` downloads the
+  repositories' file lists, which can take several minutes on a slow
+  mirror. `dnf history`, `dnf history info last`.

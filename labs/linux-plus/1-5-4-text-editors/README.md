@@ -9,6 +9,15 @@ The lab removes `/tmp/s.conf` if it's there, and notes the startup files
 task 4 may change so that reset can put them back. Ubuntu empties `/tmp` at
 boot, so do task 2 without a reboot.
 
+On the RHEL family, install full Vim and nano first. A minimal or cloud
+install has only `vi`:
+
+```
+dnf install -y vim-enhanced nano
+```
+
+Reset removes them again if they weren't installed when the lab started.
+
 ## Tasks
 
 1. Run `vimtutor` and work through lessons 1 and 2 (about 15 minutes). Not
@@ -25,8 +34,6 @@ boot, so do task 2 without a reboot.
 
 ## Hints
 
-- On the RHEL family `vim` and `vimtutor` are in `vim-enhanced`, and nano
-  is in `nano`.
 - `:set number`, `/Port`, `yy`, `p`, `cw` or `C`, `:%s/yes/YES/g`, `u`,
   `:wq`.
 - In nano, `Ctrl+x` then `n` quits without saving.

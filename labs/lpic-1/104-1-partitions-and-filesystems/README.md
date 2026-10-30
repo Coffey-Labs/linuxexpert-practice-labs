@@ -8,8 +8,9 @@ partition, wiping a disk, and Btrfs subvolumes and snapshots.
 The lab adds two empty 4 GiB spare disks, `/dev/loop40` and `/dev/loop41`
 (the chapter's `/dev/sdb` and `/dev/sdc`). Their partitions show up as
 `/dev/loop40p1` and so on. It installs the Btrfs tools if they're missing.
-Swap you turn on by hand is off again after a reboot, so check before you
-reboot.
+Task 5 needs Btrfs, which AlmaLinux 10 and Ubuntu have but RHEL and Rocky
+Linux leave out, so the lab won't start there. Swap you turn on by hand
+is off again after a reboot, so check before you reboot.
 
 ## Tasks
 

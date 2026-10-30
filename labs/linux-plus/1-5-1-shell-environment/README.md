@@ -28,5 +28,8 @@ login startup file is `~/.bash_profile`; on Ubuntu it's `~/.profile`.
   `chmod +x`.
 - `echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bash_profile` (or
   `~/.profile`), then `source` it; `which hi`.
+- Both families already put `~/bin` on the PATH: AlmaLinux's default
+  `~/.bashrc` adds it, and Ubuntu's `~/.profile` adds it at login if it
+  exists. The `export` line is how you'd add any other directory.
 - bash runs only the first of `~/.bash_profile`, `~/.bash_login` and
   `~/.profile` that it finds for a login shell.

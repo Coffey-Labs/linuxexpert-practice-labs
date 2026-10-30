@@ -23,8 +23,8 @@ service, `le-lab-watch`, that notes the profiles for `eth1` for the check.
    `fd00:50::10/64`, all persistent, in a profile made with `nmcli`.
 2. Add a second IPv4 address, `192.168.50.11/24`, to the same profile
    without removing the first.
-3. Delete that profile with `nmcli connection delete`, and do task 1 again
-   with `nmtui` on a fresh profile.
+3. Delete that profile with `nmcli connection delete`, and do tasks 1 and
+   2 again with `nmtui` on a fresh profile.
 
 ## Hints
 

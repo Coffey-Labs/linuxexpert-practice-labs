@@ -11,3 +11,9 @@ for f in /etc/environment /etc/profile.d /root/.bashrc /root/.bash_profile /root
 		printf '%s\n' "$f" >>"$LAB_STATE/absent"
 	fi
 done
+# The README has the student install full Vim and nano on the RHEL family;
+# note which are missing, for reset to remove.
+if is_rhel; then
+	for p in vim-enhanced nano; do pkg_installed $p || printf '%s\n' $p >>"$LAB_STATE/missing-pkgs"; done
+fi
+true
