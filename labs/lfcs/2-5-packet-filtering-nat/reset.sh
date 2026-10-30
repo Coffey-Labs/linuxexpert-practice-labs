@@ -3,7 +3,8 @@ for u in le-lab-app le-lab-peer-sshd le-lab-peer-web le-lab-peer-nftables; do
 	rm -rf "/etc/systemd/system/$u.service" "/etc/systemd/system/$u.service.d"
 done
 systemctl daemon-reload
-rm -rf /srv/le-app /srv/le-peer-web /etc/netns/lepeer/nftables.conf
+rm -rf /srv/le-app /srv/le-peer-web /etc/netns/lepeer/nftables.conf /usr/local/lib/le-lab/httpd.py
+rmdir /usr/local/lib/le-lab 2>/dev/null
 rmdir /etc/netns/lepeer /etc/netns 2>/dev/null
 
 if is_rhel; then

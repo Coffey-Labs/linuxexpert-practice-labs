@@ -24,4 +24,14 @@ for p in nginx haproxy; do
 done
 v=$(state_get httpd-connect)
 [ -n "$v" ] && setsebool -P httpd_can_network_connect "$v"
+# The firewall's configuration, as it was.
+if [ -f "$LAB_STATE/firewalld.tar" ]; then
+	rm -rf /etc/firewalld
+	tar -C /etc -xf "$LAB_STATE/firewalld.tar"
+	systemctl is-active --quiet firewalld && firewall-cmd -q --reload
+elif [ -f "$LAB_STATE/ufw.tar" ]; then
+	rm -rf /etc/ufw
+	tar -C /etc -xf "$LAB_STATE/ufw.tar"
+	ufw reload >/dev/null
+fi
 true

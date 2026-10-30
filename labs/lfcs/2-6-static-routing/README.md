@@ -33,7 +33,8 @@ boot from `/etc/netns/lepeer/network` and `/etc/netns/le-far/network`
 5. Make this VM route between the peer's network and far's network, and
    give the peer and far routes to each other's network through it, all
    persistent, so they can ping each other and `tracepath` shows this VM
-   as the first hop.
+   as the first hop. If firewalld is running, let it forward between the
+   two networks.
 
 ## Hints
 
@@ -42,5 +43,6 @@ boot from `/etc/netns/lepeer/network` and `/etc/netns/le-far/network`
 - `routes:` with `to:` and `via:` in netplan, then `netplan apply`.
 - `ip route get ADDRESS`.
 - `ipv4.never-default`.
-- `net.ipv4.ip_forward = 1` in a file in `/etc/sysctl.d/`; a firewall
-  must allow forwarding too, if one runs. `tracepath -n`.
+- `net.ipv4.ip_forward = 1` in a file in `/etc/sysctl.d/`. firewalld
+  forwards between interfaces it has put in one zone with `--add-forward`,
+  or between zones with a policy; `ufw route allow`. `tracepath -n`.

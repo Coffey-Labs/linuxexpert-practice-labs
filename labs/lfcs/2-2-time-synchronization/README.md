@@ -17,7 +17,8 @@ runs an NTP server. Run commands on the peer with
    `sourcedir /run/chrony-dhcp` line).
 3. Ubuntu: make systemd-timesyncd use `time.google.com`.
 4. RHEL family: make this VM an NTP server for its lab network,
-   `10.99.0.0/24`, so the peer can get the time from it.
+   `10.99.0.0/24`, so the peer can get the time from it. If firewalld is
+   running, allow NTP through.
 5. Ubuntu: make this VM an NTP client of the peer's server, `10.99.0.2`,
    with chrony (install it). Do task 3 first: chrony replaces
    systemd-timesyncd, and task 3 is then graded on its configuration.

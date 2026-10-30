@@ -1,3 +1,23 @@
+# The firewall that runs, if any: firewalld or ufw.
+fw_on() { systemctl is-active --quiet firewalld || { command -v ufw >/dev/null && ufw status | grep -q "Status: active"; }; }
+# fw_allows PORT/PROTO [SERVICE]: it lets PORT in from the lab network
+# (le-host), now and permanently.
+fw_allows() {
+	local port=$1 svc=${2:-} z p
+	if systemctl is-active --quiet firewalld; then
+		z=$(firewall-cmd --get-zone-of-interface=le-host 2>/dev/null || firewall-cmd --get-default-zone)
+		[ "$(firewall-cmd --permanent --zone="$z" --get-target)" = ACCEPT ] && return 0
+		for p in "" --permanent; do
+			firewall-cmd $p --zone="$z" --query-port="$port" ||
+				{ [ -n "$svc" ] && firewall-cmd $p --zone="$z" --query-service="$svc"; } ||
+				firewall-cmd $p --zone="$z" --list-rich-rules | grep -Eq "port=\"${port%/*}\"|service name=\"$svc\"|10\.99\.0\." ||
+				return 1
+		done
+	else
+		ufw status | grep ALLOW | grep -Eqiw "${port%/*}|${svc:-none}|10\.99\.0\.[0-9/]+"
+	fi
+}
+
 # Does an NTP server answer at $1? Asked from the peer.
 ntp_answers() {
 	in_peer python3 -c '
@@ -36,6 +56,7 @@ fi
 task 4 "This VM serves NTP to 10.99.0.0/24" rhel
 need "chrony.conf allows the lab network" 'grep -Eq "^[[:space:]]*allow([[:space:]]|$)" /etc/chrony.conf /etc/chrony.d/*.conf 2>/dev/null'
 need "chronyd is running and enabled" 'active chronyd && enabled chronyd'
+fw_on && need "the firewall lets NTP (123/udp) in, now and permanently" 'fw_allows 123/udp ntp'
 need "10.99.0.1 answers NTP requests from the peer" 'ntp_answers 10.99.0.1'
 
 task 5 "chrony client of 10.99.0.2" debian

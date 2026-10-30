@@ -28,13 +28,36 @@ fi
 mkdir -p /srv/le-app /srv/le-peer-web
 echo 'Lab app on port 8080' >/srv/le-app/index.html
 echo 'Peer test page' >/srv/le-peer-web/index.html
+mkdir -p /usr/local/lib/le-lab
+cat >/usr/local/lib/le-lab/httpd.py <<'X'
+# A static web server like "python3 -m http.server PORT --bind ADDRESS
+# --directory DIR", without its reverse DNS lookup of the address, which
+# can take seconds.
+import argparse, functools, http.server, socketserver
+
+ap = argparse.ArgumentParser()
+ap.add_argument("port", type=int)
+ap.add_argument("--bind", default="")
+ap.add_argument("--directory", default=".")
+a = ap.parse_args()
+
+
+class Server(http.server.ThreadingHTTPServer):
+    def server_bind(self):
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
+
+
+handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=a.directory)
+Server((a.bind, a.port), handler).serve_forever()
+X
 cat >/etc/systemd/system/le-lab-app.service <<'X'
 [Unit]
 Description=Practice lab app on port 8080
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 -m http.server 8080 --directory /srv/le-app
+ExecStart=/usr/bin/python3 /usr/local/lib/le-lab/httpd.py 8080 --directory /srv/le-app
 
 [Install]
 WantedBy=multi-user.target
@@ -63,7 +86,7 @@ After=le-lab-peer.service
 
 [Service]
 NetworkNamespacePath=/run/netns/lepeer
-ExecStart=/usr/bin/python3 -m http.server 8000 --bind 10.99.0.2 --directory /srv/le-peer-web
+ExecStart=/usr/bin/python3 /usr/local/lib/le-lab/httpd.py 8000 --bind 10.99.0.2 --directory /srv/le-peer-web
 
 [Install]
 WantedBy=multi-user.target

@@ -12,7 +12,7 @@ mkdir -p /usr/local/lib/le-lab
 cat >/usr/local/lib/le-lab/backend.py <<'X'
 # A practice lab back end: answers every request with a page naming it,
 # and logs (and saves) the X-Forwarded-For header it gets.
-import http.server, os, sys
+import http.server, os, socketserver, sys
 
 port = int(sys.argv[1])
 state = "/run/le-backend"
@@ -37,7 +37,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
         sys.stderr.write(f"{self.address_string()} {fmt % args} X-Forwarded-For: {xff}\n")
 
 
-http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+class Server(http.server.ThreadingHTTPServer):
+    # Without HTTPServer's reverse DNS lookup of the address.
+    def server_bind(self):
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
+
+
+Server(("127.0.0.1", port), Handler).serve_forever()
 X
 cat >/etc/systemd/system/le-backend@.service <<'X'
 [Unit]
@@ -52,3 +59,10 @@ WantedBy=multi-user.target
 X
 systemctl daemon-reload
 systemctl enable --now --quiet le-backend@8081 le-backend@8082 le-backend@8083
+
+# Save the firewall's configuration, if one runs, for reset.
+if systemctl is-active --quiet firewalld; then
+	tar -C /etc -cf "$LAB_STATE/firewalld.tar" firewalld
+elif command -v ufw >/dev/null && ufw status | grep -q 'Status: active'; then
+	tar -C /etc -cf "$LAB_STATE/ufw.tar" ufw
+fi

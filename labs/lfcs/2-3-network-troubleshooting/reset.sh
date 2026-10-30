@@ -14,6 +14,6 @@ ip link del le-far 2>/dev/null
 rm -f /etc/NetworkManager/conf.d/91-le-lab-trouble.conf
 rm -f /etc/netns/lepeer/network /etc/netns/lepeer/resolv.conf
 rmdir /etc/netns/lepeer /etc/netns 2>/dev/null
-rm -rf /srv/le-web /usr/local/lib/le-lab/trouble-net.sh /usr/local/lib/le-lab/metricsd.py
+rm -rf /srv/le-web /usr/local/lib/le-lab/trouble-net.sh /usr/local/lib/le-lab/metricsd.py /usr/local/lib/le-lab/httpd.py
 rmdir /usr/local/lib/le-lab 2>/dev/null
 true

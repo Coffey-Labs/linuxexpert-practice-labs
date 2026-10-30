@@ -1,3 +1,25 @@
+# firewalld, if it runs, lets this VM forward between le-host and le-far:
+# both in one zone that forwards, or a policy from one's zone to the
+# other's, now and permanently.
+fw_forwards() {
+	local zp zf pol p
+	systemctl is-active --quiet firewalld || return 0
+	for p in "" --permanent; do
+		zp=$(firewall-cmd $p --get-zone-of-interface=le-host 2>/dev/null) || return 1
+		zf=$(firewall-cmd $p --get-zone-of-interface=le-far 2>/dev/null) || return 1
+		if [ "$zp" = "$zf" ]; then
+			firewall-cmd $p --zone="$zp" --query-forward || return 1
+		else
+			for pol in $(firewall-cmd $p --get-policies); do
+				firewall-cmd $p --policy="$pol" --list-ingress-zones | grep -Eqw "$zp|$zf|ANY" &&
+					firewall-cmd $p --policy="$pol" --list-egress-zones | grep -Eqw "$zp|$zf|ANY" &&
+					continue 2
+			done
+			return 1
+		fi
+	done
+}
+
 # Which gateway the kernel uses for $1.
 gw_for() { ip route get "$1" 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == "via") { print $(i + 1); exit }}'; }
 if is_rhel; then
@@ -35,6 +57,7 @@ task 5 "This VM routes between the peer and far"
 need "forwarding is on, now and at boot" '[ "$(sysctl -n net.ipv4.ip_forward)" = 1 ] && grep -rqsE "^[[:space:]]*net[./]ipv4[./]ip_forward[[:space:]]*=[[:space:]]*1" /etc/sysctl.conf /etc/sysctl.d /etc/ufw/sysctl.conf'
 need "the peer's settings have a route through 10.99.0.1" 'grep -Eq "^[^#]*via 10\.99\.0\.1([[:space:]]|$)" /etc/netns/lepeer/network'
 need "far's settings have a route through 10.97.0.1" 'grep -Eq "^[^#]*via 10\.97\.0\.1([[:space:]]|$)" /etc/netns/le-far/network'
+need "firewalld forwards between le-host and le-far (one zone with forwarding, or a policy)" fw_forwards
 need "the peer can ping far" 'in_peer ping -c1 -W2 10.97.0.2'
 need "far can ping the peer" 'ip netns exec le-far ping -c1 -W2 10.99.0.2'
 need "tracepath from the peer to far shows 10.99.0.1 as the first hop" 'in_peer tracepath -n -m 3 10.97.0.2 | grep -Eq "^ *1: +10\.99\.0\.1 "'

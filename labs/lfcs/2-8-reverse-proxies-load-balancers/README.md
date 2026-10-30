@@ -12,22 +12,23 @@ receives (`journalctl -u le-backend@8081`). nginx and HAProxy aren't
 installed.
 
 The peer, at `10.99.0.2`, is the other VM: test from there with
-`sudo ip netns exec lepeer curl http://10.99.0.1/`. Open the ports you use
-in the firewall if one runs.
+`sudo ip netns exec lepeer curl http://10.99.0.1/`.
 
 ## Tasks
 
 1. Put nginx on port 80 in front of the back end on 8081 (on the RHEL
    family with SELinux enforcing), so `curl http://10.99.0.1/` from the
-   peer returns the back end's page.
+   peer returns the back end's page. If firewalld is running, allow it
+   through.
 2. Balance the requests to port 80 across the back ends with nginx: 8081
    and 8082 in turn, with 8083 as a backup.
 3. On port 81, balance across the same back ends with nginx, sticky by
    client address (without `backup`), so repeated requests from one host
-   always reach the same back end.
+   always reach the same back end. Allow port 81 through the firewall
+   too, if one runs.
 4. Ubuntu: do the balancing of task 2 with HAProxy on port 8080, with
    health checks, so a stopped back end leaves the rotation within a few
-   seconds.
+   seconds. Allow port 8080 through ufw if it's active.
 5. Make the back ends behind port 80 receive the real client's address in
    an `X-Forwarded-For` header.
 

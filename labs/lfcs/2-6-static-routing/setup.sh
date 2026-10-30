@@ -65,3 +65,10 @@ WantedBy=multi-user.target
 X
 systemctl daemon-reload
 systemctl enable --now --quiet le-lab-routing.service
+
+# Save the firewall's configuration, if one runs, for reset.
+if systemctl is-active --quiet firewalld; then
+	tar -C /etc -cf "$LAB_STATE/firewalld.tar" firewalld
+elif command -v ufw >/dev/null && ufw status | grep -q 'Status: active'; then
+	tar -C /etc -cf "$LAB_STATE/ufw.tar" ufw
+fi
