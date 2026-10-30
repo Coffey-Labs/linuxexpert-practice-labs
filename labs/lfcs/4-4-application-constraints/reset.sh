@@ -2,7 +2,7 @@ for u in heartbeat webapp; do
 	systemctl disable --now "$u.service" 2>/dev/null
 	rm -rf "/etc/systemd/system/$u.service" "/etc/systemd/system/$u.service.d" "/etc/systemd/system.control/$u.service.d"
 done
-rm -f /usr/local/bin/heartbeat
+rm -f /usr/local/bin/heartbeat /usr/local/bin/webapp
 rm -rf /srv/webapp
 userdel webapp 2>/dev/null
 # The open-file limit, wherever it went in /etc/systemd.

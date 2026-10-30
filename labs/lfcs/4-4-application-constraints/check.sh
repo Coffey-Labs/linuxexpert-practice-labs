@@ -1,5 +1,15 @@
 nginx_soft_nofile() { awk '/^Max open files/ {print $4}' "/proc/$(pgrep -o -x nginx)/limits"; }
 port81_pid() { ss -Htlnp 'sport = :81' | grep -oE 'pid=[0-9]+' | head -n1 | cut -d= -f2; }
+# Port 81 listening, allowing a few seconds for a service that just started.
+listening81() {
+	local i
+	for i in 1 2 3 4 5 6 7 8 9 10; do
+		listening 81 && return 0
+		active webapp.service || return 1
+		sleep 1
+	done
+	return 1
+}
 cg_file() { cat "/sys/fs/cgroup$(systemctl show -p ControlGroup --value heartbeat)/$1"; }
 
 task 1 "nginx has a limit of 65536 open files"
@@ -23,6 +33,6 @@ task 4 "alice has a hard limit of 200 processes"
 need "ulimit -Hu prints 200 in a new login shell of alice" '[ "$(runuser -l alice -s /bin/bash -c "ulimit -Hu" 2>/dev/null)" = 200 ]'
 
 task 5 "webapp runs as webapp, on port 81"
-need "something listens on port 81" 'listening 81'
+need "something listens on port 81" listening81
 need "the program on port 81 runs as user webapp" '[ "$(ps -o uid= -p "$(port81_pid)" | tr -d " ")" = "$(id -u webapp)" ]'
 need "webapp.service is running and starts at boot" 'active webapp.service && enabled webapp.service'
