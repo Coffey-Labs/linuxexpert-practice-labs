@@ -7,8 +7,9 @@ users and groups can log in.
 
 The guide uses two VMs, a directory server and a client; this lab uses one
 VM as both. Setup adds the name `ldap.example.org` for this VM to
-`/etc/hosts` and installs the LDAP client tools (`ldapsearch`, `ldapadd`).
-Don't create local users `alice` or `bob`.
+`/etc/hosts` (and the VM's own name, if only DNS knew it) and installs
+the LDAP client tools (`ldapsearch`, `ldapadd`). Don't create local users
+`alice` or `bob`.
 
 Which server: on Debian and Ubuntu, OpenLDAP is the `slapd` package. On
 AlmaLinux and other RHEL relatives, OpenLDAP's server is in EPEL (install
