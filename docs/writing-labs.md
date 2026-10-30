@@ -95,10 +95,18 @@ socket bind instead.
 Mark a task `self` only when it can't be checked from the running system,
 such as a boot-loader recovery. Say in its README text how to check it.
 
+Logs need care. AlmaLinux keeps the journal only in memory until someone
+makes it persistent, so a message from before a reboot is gone after it;
+read `/var/log/messages` or `/var/log/secure` as well, or mark the lab
+`noreboot`. rsyslog writes `logger` messages to those files a moment
+later, so a check that runs right away can miss them: poll briefly.
+
 **reset.sh** undoes the scenario and the usual results of the tasks (the
 users, files, units and settings they create), so that `le-lab start` on the
-same lab scores 0% again. Lab users, spare disks and the peer are removed
-for you after `reset.sh` runs. Don't fail on things that aren't there.
+same lab scores 0% again. That includes packages a task installs: note in
+setup which ones were missing, and remove them again in reset. Lab users,
+spare disks and the peer are removed for you after `reset.sh` runs. Don't
+fail on things that aren't there.
 
 ## Rules
 
