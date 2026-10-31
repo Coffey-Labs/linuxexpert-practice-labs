@@ -25,6 +25,7 @@ need "no conflict markers are committed" '! g grep -qE "^(<<<<<<<|>>>>>>>)( |$)"
 
 task 3 "~/app.git as a remote, a change pushed from ~/app-copy and pulled back"
 need "~/app.git is a bare repository" '[ "$(git --git-dir=/root/app.git rev-parse --is-bare-repository 2>/dev/null)" = true ]'
+need "~/app.git's default branch (its HEAD) is main" '[ "$(git --git-dir=/root/app.git symbolic-ref HEAD 2>/dev/null)" = refs/heads/main ]'
 need "~/project has ~/app.git as a remote" remote_is_app
 need "~/app-copy is a clone of ~/app.git" 'git -C /root/app-copy remote get-url origin | grep -Eq "(^|/)app\.git/?$"'
 need "a commit was made in ~/app-copy" '[ -n "$(copy_commit)" ]'

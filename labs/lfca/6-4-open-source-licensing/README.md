@@ -26,6 +26,9 @@ Git (reset removes the ones the lab didn't find).
 - Package names differ: `dpkg -S $(command -v curl)` or
   `rpm -qf $(command -v curl)` finds the one for a program. For a library
   with no program, `dpkg -S libz.so.1` or `rpm -qf /usr/lib64/libz.so.1`.
-  SQLite's command-line tool may not be installed; its library is.
+  SQLite's command-line tool may not be installed; its library is
+  (`libsqlite3-0` on Ubuntu, `sqlite-libs` on the RHEL family).
+- `rpm` calls SQLite's license `blessing`: SPDX's name for its
+  public-domain dedication.
 - `git config --global user.name`, `user.email`; `git init`,
   `git commit -s -m "..."`, `git log -1`.

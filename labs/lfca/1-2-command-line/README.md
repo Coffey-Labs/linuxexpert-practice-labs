@@ -7,10 +7,9 @@ two editors, and a script of your own on the `PATH`.
 
 Work as root (`sudo -i`), so `~` is `/root`. Answers go in
 `/root/lab-answers/<task>`. The lab creates `~/editme.txt` for task 6 and
-saves your `~/.bashrc` so reset can put it back. Task 3 needs password
-logins to be on in sshd (`sshd -T | grep passwordauth`), as they are on a
-fresh install. Files in `/tmp` don't survive a reboot, so do the tasks in
-one go and run `le-lab check` before you reboot.
+saves your `~/.bashrc` and sshd's settings so reset can put them back.
+Files in `/tmp` don't survive a reboot, so do the tasks in one go and run
+`le-lab check` before you reboot.
 
 ## Tasks
 
@@ -19,9 +18,10 @@ one go and run `le-lab check` before you reboot.
 2. Find every file under `/etc` whose name ends in `.conf`, save the list to
    `~/conf-files.txt`, count its lines, and write the count to
    `/root/lab-answers/2`.
-3. Make sure the SSH server is running, run `ssh localhost` and type a
-   wrong password. Count the failures in sshd's journal and write the count
-   to `/root/lab-answers/3`.
+3. Make sure the SSH server is running and allows password logins (turn
+   them on if not), run `ssh localhost` and type a wrong password. Count
+   the failures in sshd's journal and write the count to
+   `/root/lab-answers/3`.
 4. Make a file `/tmp/private.txt` that only you can read and write, check
    it with `ls -l`, then create user `bob` with a home directory and try
    `sudo -u bob cat /tmp/private.txt`.
@@ -38,8 +38,11 @@ one go and run `le-lab check` before you reboot.
 
 - `mkdir -p`, `cd`, `cd ~`, `cd ../../..`, `cd -` and `pwd`.
 - `find /etc -name '*.conf' > ~/conf-files.txt`, `wc -l`.
-- `systemctl status sshd` (`ssh` on Ubuntu);
-  `journalctl -u sshd | grep -c "Failed password"` (`-u ssh` on Ubuntu).
+- `systemctl status sshd` (`ssh` on Ubuntu). `sshd -T | grep passwordauth`
+  should say `yes`; many cloud images set it to `no`, on Ubuntu in
+  `/etc/ssh/sshd_config.d/50-cloud-init.conf`. Change it there and
+  `systemctl restart sshd` (`ssh` on Ubuntu).
+- `journalctl -u sshd | grep -c "Failed password"` (`-u ssh` on Ubuntu).
 - `chmod 600`, `useradd -m bob`; the `cat` should fail.
 - `tar -czf ~/practice.tar.gz -C ~ practice`, `rm -r`, `tar -xzf`,
   `tar -tzf` to look inside.

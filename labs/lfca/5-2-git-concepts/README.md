@@ -17,8 +17,8 @@ the lab didn't find).
    commits on `main`, and read the log with `git log --oneline`.
 2. Make a branch, change the same line on it and on `main`, merge the
    branch into `main`, and resolve the conflict.
-3. Create a bare repository with `git init --bare ~/app.git` to act as a
-   remote, and push `~/project`'s `main` to it. Clone it into
+3. Create a bare repository with `git init --bare -b main ~/app.git` to
+   act as a remote, and push `~/project`'s `main` to it. Clone it into
    `~/app-copy`, commit a change there and push it, then `pull` the change
    back into `~/project`.
 4. In `~/project`, commit a bad change, then undo it with `git revert`, and
@@ -31,6 +31,9 @@ the lab didn't find).
 - `git switch -c NAME`, `git switch main`, `git merge NAME`; edit the file
   to remove the `<<<<<<<`, `=======` and `>>>>>>>` lines, then `git add`
   and `git commit`.
+- `-b main` names the bare repository's default branch. Without it or
+  `init.defaultBranch`, it's `master`, and the clone warns "remote HEAD
+  refers to nonexistent ref" and comes out empty.
 - `git remote add origin ~/app.git`, `git push -u origin main`,
   `git clone ~/app.git ~/app-copy`, `git push`, `git pull`.
 - `git revert HEAD`, `git log --oneline`.
