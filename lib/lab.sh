@@ -7,6 +7,11 @@ LE_DISKS=$LE_STATE/disks
 LE_PEER_NS=lepeer
 LE_HOST_ADDR=10.99.0.1
 LE_PEER_ADDR=10.99.0.2
+LE_NODES=$LE_STATE/nodes
+LE_NODE_NET=le-lab-nodes
+LE_NODE_PREFIX=10.99.1
+LE_NODE_BASE=quay.io/almalinuxorg/10-init:10
+LE_NODE_IMAGE=localhost/le-lab-node:10
 
 # ---- output -----------------------------------------------------------------
 
@@ -235,6 +240,190 @@ sshd_restart() {
 	done
 	warn "sshd isn't listening on port 22; check 'systemctl status $unit'"
 	return 1
+}
+
+# ---- managed nodes ----------------------------------------------------------
+
+# Tasks written for "managed nodes" (a control node and several machines it
+# manages over SSH) use podman containers: node1..nodeN at
+# $LE_NODE_PREFIX.11, .12, ... (names in /etc/hosts), each an AlmaLinux 10
+# system with systemd as PID 1, its own files, packages, users, services
+# and cron, sshd, and dnf against the real AlmaLinux repositories. root and
+# user "ansible" (in wheel) have password Lab-Pass-1. The containers are
+# kept, not recreated, so everything done in a node survives a reboot of
+# the VM; le-lab-nodes.service starts them again at boot.
+
+# nodes_up N: set up node1..nodeN (1-9) and wait until their sshd answers.
+nodes_up() {
+	local n=${1:-3} i name
+	case $n in [1-9]) ;; *) die "nodes_up takes 1 to 9 nodes" ;; esac
+	mkdir -p "$LE_NODES"
+	if ! command -v podman >/dev/null; then
+		pkg_install podman
+		printf 'podman\n' >"$LE_NODES/installed-podman"
+	fi
+	if ! podman image exists "$LE_NODE_BASE"; then
+		say "${C_DIM}Pulling the node image...${C_0}"
+		printf '%s\n' "$LE_NODE_BASE" >"$LE_NODES/pulled"
+		for i in 1 2 3; do podman pull -q "$LE_NODE_BASE" >/dev/null && break; sleep 5; done
+		podman image exists "$LE_NODE_BASE" || die "could not pull $LE_NODE_BASE"
+	fi
+	if ! podman image exists "$LE_NODE_IMAGE"; then
+		say "${C_DIM}Building the node image...${C_0}"
+		_node_build || die "could not build the node image"
+	fi
+	if ! podman network exists "$LE_NODE_NET"; then
+		podman network create --subnet "$LE_NODE_PREFIX.0/24" --gateway "$LE_NODE_PREFIX.1" \
+			--label le-lab=node "$LE_NODE_NET" >/dev/null
+	fi
+	for i in $(seq 1 "$n"); do
+		name=node$i
+		if ! podman container exists "$name"; then
+			podman create --name "$name" --hostname "$name" --label le-lab=node \
+				--network "$LE_NODE_NET" --ip "$LE_NODE_PREFIX.$((10 + i))" \
+				--systemd always --restart always \
+				--cap-add AUDIT_WRITE,AUDIT_CONTROL,NET_ADMIN,NET_RAW \
+				"$LE_NODE_IMAGE" >/dev/null
+		fi
+		grep -qxF "$name" "$LE_NODES/names" 2>/dev/null || printf '%s\n' "$name" >>"$LE_NODES/names"
+		hosts_add "$LE_NODE_PREFIX.$((10 + i)) $name.lab.example $name"
+	done
+	if [ ! -f /etc/systemd/system/le-lab-nodes.service ]; then
+		cat >/etc/systemd/system/le-lab-nodes.service <<EOF
+[Unit]
+Description=LINUXexpert practice lab managed nodes
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+TimeoutStartSec=300
+ExecStart=/bin/bash -c '. $LE_LIB && nodes_start'
+ExecStop=/bin/bash -c '. $LE_LIB && nodes_stop'
+
+[Install]
+WantedBy=multi-user.target
+EOF
+		systemctl daemon-reload
+		systemctl enable --quiet le-lab-nodes.service
+	fi
+	say "${C_DIM}Starting ${n} managed node(s)...${C_0}"
+	systemctl start le-lab-nodes.service
+	nodes_start
+}
+
+# The node image: the AlmaLinux 10 init image with sshd, sudo, Python and
+# cron, and the two lab logins. The image starts with a copy of this VM's
+# dnf metadata (the same AlmaLinux repositories), so neither the build nor
+# the first dnf run in each node has to download it again. dnf in the build
+# and in the nodes moves on from a mirror slower than 100 kB/s after 15 s.
+_node_build() {
+	local dir cache=()
+	dir=$(mktemp -d)
+	cat >"$dir/Containerfile" <<'EOF'
+FROM base
+RUN if [ -d /le-cache ]; then cp -a /le-cache/. /var/cache/dnf/; fi \
+    && dnf -y -q --setopt=install_weak_deps=False --setopt=minrate=100k --setopt=timeout=15 install \
+        openssh-server openssh-clients sudo python3 cronie procps-ng \
+        iproute iputils hostname tar findutils less \
+    && dnf clean packages
+RUN useradd -m -G wheel ansible \
+    && printf 'root:Lab-Pass-1\nansible:Lab-Pass-1\n' | chpasswd \
+    && printf 'PermitRootLogin yes\n' >/etc/ssh/sshd_config.d/01-le-lab.conf \
+    && printf '# Practice lab: move on from slow mirrors.\nminrate=100k\ntimeout=15\n' >>/etc/dnf/dnf.conf \
+    && systemctl enable sshd crond
+EOF
+	is_rhel && [ -d /var/cache/dnf ] &&
+		cache=(--security-opt label=disable -v /var/cache/dnf:/le-cache:ro)
+	podman build -q --layers=false --from "$LE_NODE_BASE" "${cache[@]}" \
+		-t "$LE_NODE_IMAGE" "$dir" >/dev/null
+	local r=$?
+	rm -rf "$dir"
+	return $r
+}
+
+# nodes_names: the node names, one a line.
+nodes_names() { cat "$LE_NODES/names" 2>/dev/null; }
+
+# node_addr NAME: a node's address.
+node_addr() { printf '%s.%d\n' "$LE_NODE_PREFIX" $((10 + ${1#node})); }
+
+# nodes_start: start every node and wait for its sshd (le-lab-nodes.service,
+# at boot).
+nodes_start() {
+	local name
+	for name in $(nodes_names); do
+		podman start "$name" >/dev/null || warn "le-lab: could not start $name"
+	done
+	nodes_wait
+}
+
+nodes_stop() {
+	local names; names=$(nodes_names)
+	[ -n "$names" ] && podman stop -t 15 $names >/dev/null 2>&1
+	true
+}
+
+# nodes_wait [SECONDS]: wait until every node's sshd accepts connections.
+nodes_wait() {
+	local limit=${1:-120} t=0 name addr
+	for name in $(nodes_names); do
+		addr=$(node_addr "$name")
+		until timeout 2 bash -c "exec 3<>/dev/tcp/$addr/22" 2>/dev/null; do
+			sleep 1; t=$((t + 1))
+			[ "$t" -lt "$limit" ] || { warn "le-lab: $name doesn't answer on port 22"; return 1; }
+		done
+	done
+}
+
+# in_node [-i] NAME CMD...: run a command as root in a node; one argument
+# runs as shell code. With -i it reads standard input (for here-documents);
+# without, it leaves it alone, so it is safe in a while-read loop.
+in_node() {
+	local i=()
+	[ "$1" = -i ] && { i=(-i); shift; }
+	local name=$1; shift
+	if [ $# -eq 1 ]; then
+		podman exec "${i[@]}" "$name" /bin/bash -c "$1"
+	else
+		podman exec "${i[@]}" "$name" "$@"
+	fi
+}
+
+# nodes_down: remove the nodes, their unit, network and images, and podman
+# itself if nodes_up installed it.
+nodes_down() {
+	local unit=/etc/systemd/system/le-lab-nodes.service c
+	if [ -f "$unit" ]; then
+		systemctl disable --quiet le-lab-nodes.service 2>/dev/null
+		systemctl stop le-lab-nodes.service 2>/dev/null
+		rm -f "$unit"
+		systemctl daemon-reload
+	fi
+	if command -v podman >/dev/null; then
+		for c in $(podman ps -a --filter label=le-lab=node --format '{{.Names}}'); do
+			podman rm -f -t 5 "$c" >/dev/null 2>&1
+		done
+		podman network rm -f "$LE_NODE_NET" >/dev/null 2>&1
+		podman rmi -f "$LE_NODE_IMAGE" >/dev/null 2>&1
+		if [ -f "$LE_NODES/pulled" ]; then
+			podman rmi -f "$(cat "$LE_NODES/pulled")" >/dev/null 2>&1
+		fi
+		if [ -f "$LE_NODES/installed-podman" ]; then
+			podman system reset -f >/dev/null 2>&1
+			if is_rhel; then dnf -y -q remove podman >/dev/null 2>&1
+			else apt-get -y -qq purge podman >/dev/null 2>&1 && apt-get -y -qq autoremove >/dev/null 2>&1; fi
+			# What podman left behind; there was none of it before.
+			if ! pkg_installed podman; then
+				rm -rf /var/lib/containers /etc/containers/networks
+				rmdir /etc/containers 2>/dev/null
+			fi
+		fi
+	fi
+	[ -d "$LE_NODES" ] && hosts_remove
+	rm -rf "$LE_NODES"
+	true
 }
 
 # ---- users ------------------------------------------------------------------

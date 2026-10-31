@@ -175,7 +175,7 @@ cmd_reset() {
 	if [ -f "$dir/reset.sh" ]; then
 		bash -c '. "$1/lib/lab.sh"; . "$2/reset.sh"' _ "$ROOT" "$dir" || warn "Some of the reset failed; see above."
 	fi
-	bash -c '. "$1/lib/lab.sh"; users_remove; disks_remove; peer_down' _ "$ROOT"
+	bash -c '. "$1/lib/lab.sh"; users_remove; disks_remove; peer_down; nodes_down' _ "$ROOT"
 	rm -rf "$LAB_STATE" "$CURRENT" /root/lab-answers
 	say "Done. Anything you changed outside the lab's own files is still there;"
 	say "roll back to your snapshot for a completely clean VM."
