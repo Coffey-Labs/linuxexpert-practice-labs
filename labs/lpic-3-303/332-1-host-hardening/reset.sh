@@ -1,12 +1,7 @@
 if [ -f "$LAB_STATE/ssh.tar" ]; then
 	rm -f /etc/ssh/sshd_config.d/* /etc/ssh/revoked.krl /etc/ssh/*-cert.pub
 	tar -C /etc -xf "$LAB_STATE/ssh.tar"
-	if is_rhel; then
-		systemctl restart sshd
-	else
-		systemctl restart ssh.socket 2>/dev/null
-		systemctl restart ssh.service 2>/dev/null
-	fi
+	sshd_restart
 fi
 rm -rf /root/sshca /srv/jail /usr/local/bin/lab-python
 pkg_installed usbguard && [ ! -f "$LAB_STATE/usbguard.tar" ] && systemctl disable --now --quiet usbguard 2>/dev/null

@@ -217,6 +217,26 @@ hosts_add() {
 
 hosts_remove() { sed -i '/^# le-lab begin/,/^# le-lab end/d' /etc/hosts; }
 
+# ---- sshd -------------------------------------------------------------------
+
+# sshd_restart: restart sshd with its current settings, for resets that put
+# its configuration back. On Ubuntu that means restarting ssh.socket, which
+# restarts ssh.service too; restarting both, or doing it too often, trips the
+# service's start limit and leaves nothing on port 22. So clear the counters,
+# restart once, and check that port 22 answers, up to three times.
+sshd_restart() {
+	local unit=sshd i
+	is_rhel || unit=ssh.socket
+	for i in 1 2 3; do
+		systemctl reset-failed "$unit" ssh.service 2>/dev/null
+		systemctl restart "$unit" 2>/dev/null
+		sleep 2
+		listening 22 tcp && ! systemctl is-failed --quiet "$(pick sshd ssh.service)" && return 0
+	done
+	warn "sshd isn't listening on port 22; check 'systemctl status $unit'"
+	return 1
+}
+
 # ---- users ------------------------------------------------------------------
 
 # user_add NAME [useradd options]: create a lab user if missing, with bash
