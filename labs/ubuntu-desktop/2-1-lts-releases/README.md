@@ -20,7 +20,7 @@ line.
 3. List every Ubuntu release still supported today, and say which of them
    are LTS releases. Write one release per line to `/root/lab-answers/3`
    as its version number, followed by `LTS` for the LTS ones (such as
-   `24.04 LTS`). The development release may be left out.
+   `24.04 LTS`). Leave out the release still in development.
 
 ## Hints
 

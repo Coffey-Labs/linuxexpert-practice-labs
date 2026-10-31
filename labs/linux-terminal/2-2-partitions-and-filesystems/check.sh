@@ -4,11 +4,11 @@ U=$(blkid -o value -s UUID "$P" 2>/dev/null)
 # Partition size in bytes.
 psize() { blockdev --getsize64 "$P" 2>/dev/null || echo 0; }
 
-task 1 "GPT, one 1 GiB ext4 partition labelled data, mounted at /mnt/data by UUID"
+task 1 "GPT, one 1 GiB ext4 partition labeled data, mounted at /mnt/data by UUID"
 need "$D has a GPT partition table" '[ "$(blkid -o value -s PTTYPE "$D")" = gpt ]'
 need "$D has one partition, $P" '[ -b "$P" ] && [ "$(lsblk -nr -o TYPE "$D" | grep -c part)" = 1 ]'
 need "$P is 1 GiB" 's=$(psize); [ "$s" -ge $((1024 * 1024 * 1016)) ] && [ "$s" -le $((1024 * 1024 * 1032)) ]'
-need "$P holds ext4 labelled data" '[ "$(blkid -o value -s TYPE "$P")" = ext4 ] && [ "$(blkid -o value -s LABEL "$P")" = data ]'
+need "$P holds ext4 labeled data" '[ "$(blkid -o value -s TYPE "$P")" = ext4 ] && [ "$(blkid -o value -s LABEL "$P")" = data ]'
 need "/etc/fstab mounts UUID=$U at /mnt/data" '[ -n "$U" ] && awk -v u="UUID=$U" "\$1 == u && \$2 == \"/mnt/data\" && \$3 == \"ext4\"" /etc/fstab | grep -q .'
 need "findmnt --verify reports no errors or warnings" 'findmnt --verify 2>&1 | grep -q "no errors or warnings"'
 need "/mnt/data is mounted from it now" '[ -n "$U" ] && [ "$(findmnt -n -o UUID /mnt/data)" = "$U" ]'

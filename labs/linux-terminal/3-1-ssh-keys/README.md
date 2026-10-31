@@ -19,7 +19,8 @@ test the login. The lab checks that user `bob` doesn't exist yet, and
    so you can log in to `bob@localhost` with it. Ubuntu cloud images turn
    off password logins over SSH, so ssh-copy-id can't log in there; use
    the manual steps instead. After `eval "$(ssh-agent)"; ssh-add
-   ~/.ssh/lab_key`, `ssh -o BatchMode=yes -i ~/.ssh/lab_key bob@localhost
+   ~/.ssh/lab_key`, `ssh -o BatchMode=yes -o
+   StrictHostKeyChecking=accept-new -i ~/.ssh/lab_key bob@localhost
    whoami` prints `bob`.
 3. Run `sudo chmod 777 /home/bob`, try the login again, and find out why it
    fails. Then fix it.
@@ -29,6 +30,7 @@ test the login. The lab checks that user `bob` doesn't exist yet, and
 - `ssh-keygen -t ed25519 -C lab-key -f ~/.ssh/lab_key`; `ssh-keygen -l -f`.
 - `useradd -m`, `passwd`; then `/home/bob/.ssh` (mode 700) and
   `authorized_keys` (mode 600), both owned by `bob`, holding the `.pub`
-  line.
+  line. BatchMode doesn't ask about a new host key either: without
+  `accept-new`, the first try fails with "Host key verification failed."
 - `journalctl -u ssh -n 5` or `/var/log/auth.log`: "bad ownership or
   modes"; `chmod 750 /home/bob`.

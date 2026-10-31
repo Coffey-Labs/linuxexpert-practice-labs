@@ -16,7 +16,8 @@ your `check.sh` again. Write answers to the files in `/root/lab-answers/`.
    FAIL for each of: at least 2 CPUs, at least 2 GiB of total memory, at
    least 10 GiB free on `/`, and Ubuntu 24.04, one line each, in that
    order. Each result must match what `nproc`, `free -g`, `df -h /` and
-   `/etc/os-release` show by hand.
+   `/etc/os-release` show by hand. `free -g` rounds down, so a VM given
+   exactly 2 GiB shows `1` and fails the memory test.
 2. Find out whether this machine could host KVM guests itself (write
    `yes` or `no` to `/root/lab-answers/2-kvm`), and whether it's a virtual
    machine (write what `systemd-detect-virt` prints, such as `kvm` or

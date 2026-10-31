@@ -33,4 +33,4 @@ need "line 1 of /root/lab-answers/2 is this release's end of support" '[ "$(mont
 need "line 2 is the latest LTS's end of support" '[ "$(month "$(line 2 2)")" = "$(eol_of "$(ubuntu-distro-info --lts)" | cut -c1-7)" ]'
 
 task 3 "Every supported release, LTS ones marked"
-need "/root/lab-answers/3 lists exactly the supported releases, with LTS marked" '[ "$(given)" = "$(expected)" ] || [ "$(given)" = "$(expected "$(ubuntu-distro-info --devel 2>/dev/null)")" ]'
+need "/root/lab-answers/3 lists exactly the supported releases, with LTS marked and the development release left out" '[ "$(given)" = "$(expected "$(ubuntu-distro-info --devel 2>/dev/null)")" ]'

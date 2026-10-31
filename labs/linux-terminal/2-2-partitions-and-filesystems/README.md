@@ -14,7 +14,7 @@ Work as root (`sudo -i`), and write answers to the files in
 ## Tasks
 
 1. Give `/dev/loop40` a GPT partition table with one 1 GiB partition, make
-   an ext4 filesystem labelled `data` on it, and mount it at `/mnt/data` at
+   an ext4 filesystem labeled `data` on it, and mount it at `/mnt/data` at
    every boot, by UUID. `findmnt --verify` reports no errors or warnings.
 2. Save a file `/mnt/data/keep.txt` containing `keep me`. Unmount the
    filesystem, write its partition's start sector to
@@ -29,5 +29,7 @@ Work as root (`sudo -i`), and write answers to the files in
   `blkid` for the UUID; `systemctl daemon-reload` after editing fstab, then
   `mount -a`.
 - `fdisk -l /dev/loop40` shows the start; recreate with the same start and
-  answer **N** to "remove the signature". `blkid` shows the same UUID.
+  answer **N** to "remove the signature". fdisk asks that only at a
+  terminal: fed from a pipe, it keeps the signature without asking.
+  `blkid` shows the same UUID.
 - `fsck -fn /dev/loop40p1 >/root/lab-answers/3 2>&1`.
