@@ -30,7 +30,8 @@ Keep your files in `/root/fw`.
    connections.
 2. Make port 8888 on `le-host` reach the server on 8081 with a NAT
    redirect, and accept only the redirected traffic to 8081 from the peer,
-   so that 8081 stays closed to direct connections.
+   so that 8081 stays closed to direct connections. Put that rule above
+   the LOG rule, so that redirected connections aren't logged as drops.
 3. Make an IP set `blocklist` and a rule, second in INPUT, that drops its
    members. Block the peer by adding it to the set, and unblock it again,
    without changing any rule.
@@ -53,7 +54,8 @@ Keep your files in `/root/fw`.
   --line-numbers`. From the peer: `curl -s -m 3 http://10.99.0.1:8081/`.
   `journalctl -k | grep FW-DROP`, `conntrack -L`.
 - `iptables -t nat -A PREROUTING -i le-host -p tcp --dport 8888 -j
-  REDIRECT --to-ports 8081`; `-m conntrack --ctstate DNAT`.
+  REDIRECT --to-ports 8081`; `-m conntrack --ctstate DNAT`; `iptables -I
+  INPUT 7` inserts a rule as number 7.
 - `ipset create blocklist hash:ip`, `iptables -I INPUT 2 -m set
   --match-set blocklist src -j DROP`, `ipset add`, `ipset del`, `ipset
   test`.

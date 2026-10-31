@@ -17,6 +17,7 @@ need "a drop of the peer's traffic was logged" 'journalctl -k --no-pager 2>/dev/
 task 2 "Port 8888 redirected to 8081, accepted only when redirected"
 need "rules.v4 redirects 8888 on le-host to 8081" 'has "^-A PREROUTING -i le-host -p tcp( -m tcp)? --dport 8888 -j REDIRECT --to-ports 8081"'
 need "rules.v4 accepts 8081 from the peer only with ctstate DNAT" 'has "^-A INPUT -s 10\.99\.0\.2(/32)? .*--dport 8081 .*--ctstate DNAT -j ACCEPT"'
+need "the DNAT rule comes before the LOG rule" 'awk "/^-A INPUT/ { n++ } /^-A INPUT .*--ctstate DNAT -j ACCEPT/ && !d { d = n } /^-A INPUT .*-j LOG/ && !l { l = n } END { exit !(d && l && d < l) }" $R'
 
 task 3 "An IP set blocklist, matched by the second INPUT rule"
 need "rules.v4 drops members of blocklist, second in INPUT" '[ "$(grep "^-A INPUT" $R | sed -n 2p)" = "-A INPUT -m set --match-set blocklist src -j DROP" ]'
