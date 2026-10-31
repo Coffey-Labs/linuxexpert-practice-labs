@@ -9,12 +9,7 @@ rm -f /root/hash-me.txt /root/secret.txt /root/secret.txt.gpg
 if [ -f "$LAB_STATE/ssh.tar" ]; then
 	rm -f /etc/ssh/sshd_config.d/*
 	tar -C /etc -xf "$LAB_STATE/ssh.tar"
-	if is_rhel; then
-		systemctl restart sshd
-	else
-		systemctl restart ssh.socket 2>/dev/null
-		systemctl restart ssh.service 2>/dev/null
-	fi
+	sshd_restart
 fi
 # Root's new keys and gpg's files.
 for k in /root/.ssh/id_*; do

@@ -46,6 +46,8 @@ with `set -e`. Read `lib/lab.sh` for the helpers; the ones most labs use:
   `10.99.0.2` (name `peer`), linked to the VM's `10.99.0.1`
 - `hosts_add LINE`: an `/etc/hosts` line reset takes out again
 - `state_set KEY VALUE`, `state_get KEY`: notes for check and reset
+- `sshd_restart`: restart sshd after reset puts its settings back, and
+  check port 22 answers (on Ubuntu, never restart `ssh.service` yourself)
 
 The peer shares the VM's files, users and `/etc`, but has its own
 addresses, routes, firewall and ports. It has no route beyond the VM, so

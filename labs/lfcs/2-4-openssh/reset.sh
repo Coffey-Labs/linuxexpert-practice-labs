@@ -16,12 +16,7 @@ for f in /etc/systemd/system/ssh.socket.d/*; do
 	grep -qxF "${f##*/}" "$LAB_STATE/socket-d" 2>/dev/null || rm -f "$f"
 done
 systemctl daemon-reload
-if is_rhel; then
-	systemctl restart sshd
-else
-	systemctl restart ssh.socket 2>/dev/null
-	systemctl restart ssh.service 2>/dev/null
-fi
+sshd_restart
 
 # The client side.
 if [ -f "$LAB_STATE/root-ssh-config" ]; then
